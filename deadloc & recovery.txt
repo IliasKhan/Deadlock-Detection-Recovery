@@ -1,0 +1,123 @@
+                    Deadlock detection & Recoovery in Distributed System
+Processes/Plan:
+ - We are using ChandyHaasMisra algorithm to detect deadlock in distributed system.
+ - Then we will use Process Termination to Recoover the system from deadlock.
+Deadlock Detection:
+Input:
+we will take 3 Inputs to start our algorithm.
+- number of sites: N
+- number of Process: M
+- processes = [
+    
+{pi1, pi2 ,pi3,. . . .piE}
+{pj1, pj2 ,pj3, . . .pjE},
+{pk1, pk2 ,pk3, . . .pkE},
+.,
+.,
+.,
+{pl1, pl2, pl3 . . . plE}
+]
+
+
+ChandyHaasMisra
+Time-Complexity T = O(N)
+
+*****ChandyHaasMisra algorithm******
+  
+# sending probe:
+  1st: if  
+    pi is locally dependent on itself 
+    then declare deadlock
+ else
+    for all pj,pk such that
+       (a) pi is locaaly dependent on pj
+        and
+       (b) pj is waiting for pk
+       and
+       (c) pj,pk are on different site controlers.
+           send probe (i,j,k) to home site of pk and 
+         goto step 2
+ 
+
+#receving probe:
+  2nd :if
+       (a) pk is idle/blocked
+       (b)dependent k(i)=false,
+        and
+        (c) pk has not replied to all requests of to pj 
+   // if all above condition is found to be true  
+   then begin
+       (1) "dependents" "k"(i)=true;
+       (2) if(k==i)
+   then declear that pi is deadlocked
+(3) else
+     for all pm,pn such that 
+       (a) pk is locally deoendent on pm,
+       (b) pm is waiting for pn and
+       (c) pm,pn are on different controllers.
+   send probe (i,m,n) to home site of pn and
+goto step 2 
+end
+So, as we have already detected deadlock.Now, we have to Recoover the system from deadlock.We have few 
+procedure to solve the problem.First, we can completely terminate all processes and recover the system from deadlock.
+second, delete processes one by one and check deadlock is still present in the system or not.We will use mix 
+of both to make our algorithm cost and time affective.
+
+Input:
+we have no of sites , no of processes, processes list from the first algorithm.Now we will use a cost parameter
+to make our algorithm work according to cost and time.cost_params has complete-status and priority mapped to
+each process.
+example
+/*complete status(0-100)% and priority(0-100) of processes:*/
+Ex:
+- cost_params = { p1: [20%, 70], p2: [30%, 30], p3: [40%, 60], p4: [10%, 50] }
+initilize: 
+      randomize_priority for(compete status=rant int 1 to 100)
+      randomize_priority for(priority=rant int 1 to 100)
+       
+**Algorithm:**
+
+INPUT:
+Function Generate_cost_params(N){
+	cost_params = {}
+	for(index 1 to N){
+		complete_status = random(1 to 100)
+		priority = random(1 to 100)
+		cost_params[p_index] = [complete_status, priority]
+	}
+	return cost_params;
+}
+  start: 
+Step3: check the system, deadlock is present or not.(Using ChandyHaasMisra algorithm)
+       if not present:
+          goto step-end
+       else 
+          goto step2
+Step4: 
+  total_cost = func find_cost(processes, cost_params): int /*(find the total cost of the system| defined below)*/
+  if(total_cost<=20)
+    goto step3
+  else 
+    goto step4
+
+Step5:  
+  kill_processes
+  goto step-end
+Step6: 
+  do{
+    kill_lowest_priority_process
+  }o
+   while(is_deadlock(processes))
+  goto step-end
+
+Step6(step-end): 
+  continue the system's work.As, deadlock is removed from the system.
+END
+
+find_cost(processes, cost_params):
+  (sum of (priority * complete_status))/(100 * no of processes) of all processes
+
+
+
+Time-Complexity: T + T*N = O(T*N) = O(N^2)  // T = O(N) 
+   

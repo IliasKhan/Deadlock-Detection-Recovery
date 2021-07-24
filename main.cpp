@@ -3,35 +3,57 @@
 
 using namespace std;
 
+void print(vector<bool> v){
+  cout<<endl;
+  for(auto p : v){
+    cout<<p<<" ";
+  }
+  cout<<endl;
+}
+
+
+//Function to detect & recover deadlock
+void deadlockDetectionAndRecovery(vector<vector<int>> &wait_graph, int pid_probe, vector<int> all_processes, vector<bool> &terminated_processes);
+
 //Function to detect deadlock
-bool detectDeadlock(vector<vector<int>> &wait_graph, int pid_probe, int dest_process, vector<int> all_processes);
+bool isDeadlockDetected(vector<vector<int>> &wait_graph, int pid_probe, vector<int> all_processes, vector<bool> &terminated_processes);
+bool detectDeadlock(vector<vector<int>> &wait_graph, int pid_probe, int dest_process, vector<int> all_processes, vector<bool> &terminated_processes);
+
+//Function to Recover deadlock
+void recoverDeadlock(vector<vector<int>> &wait_graph, vector<int> all_processes, vector<bool> &terminated_processes);
 
 //Function to display graph
 void displayGraph(vector<vector<int>> mat);
 
 //Number of machine in the distributed system
 int number_of_site;
-
-
-bool is_deadlock_detected = false;
+vector<int> priority_wise_processes;
 
 // The main execution starts from here
 int main() {
 
+// For input/output files
   ifstream in("input.txt");
-  streambuf *cinbuf = std::cin.rdbuf(); //save old buf
-  cin.rdbuf(in.rdbuf()); //redirect std::cin to in.txt!
+  streambuf *cinbuf = std::cin.rdbuf(); 
+  cin.rdbuf(in.rdbuf()); 
 
   ofstream out("output.txt");
-  streambuf *coutbuf = std::cout.rdbuf(); //save old buf
+  streambuf *coutbuf = std::cout.rdbuf(); 
   cout.rdbuf(out.rdbuf()); 
   
-
+// Taking Input & building wait graph from i/p files
   cin >> number_of_site;
   cout << "Number of sites/machines: "<<number_of_site<<"\n"<< endl;
-  // cout<<": "<<number_of_site<<"\n";
 
-  cout<<"Process Info(ordered by local dependancy)\n";
+  cout << "Priority wise Process sites\n";
+  for(int idx=0; idx < number_of_site; idx++){
+    int process_number;
+    cin >> process_number;
+    cout<<process_number<<" ";
+    priority_wise_processes.push_back(process_number);
+  }
+
+  cout<<"\n\nProcess Info(ordered by local dependancy)\n";
   vector<int> all_processes;
   for(int site_no=0; site_no<number_of_site; site_no++){
     int process_count;
@@ -45,9 +67,7 @@ int main() {
   }
   cout<<"\n";
 
-  
-
-
+  vector<bool> terminated_processes(number_of_site, false);
   if (number_of_site > 1) 
   {
     vector<vector<int>> wait_graph(number_of_site);    
@@ -71,27 +91,13 @@ int main() {
     cout << endl;
 
     //Enter the proccess pid_probeiating the probe
-    
     int pid_probe, first_pid;
     cin >> pid_probe;
-    cout << "First process of Site "<< pid_probe <<" pid_probeiated the detection process"<< endl;
+    cout << "First process of Site "<< pid_probe <<" pid_prob initiated the detection process"<< endl;
     pid_probe = pid_probe - 1;
-    first_pid = pid_probe;
 
-    //Detecting deadlock
-    for (int col = 0; col < number_of_site; col++)
-    {
-      if (wait_graph.at(pid_probe).at(col) == 1)
-      {
-        cout << " S" << (pid_probe + 1) << " --> S" << (col + 1) << "     (" <<"p"<<(first_pid + 1)<<"1"<< ", " <<"p"<<(pid_probe + 1)<<all_processes[pid_probe] << ", " << "p"<<(col + 1)<<1<< ")" << endl;
-        if(detectDeadlock(wait_graph, pid_probe, col, all_processes))
-        {
-          cout<<"Deadlock Detected";
-          return 0;
-        }
-      }
-    }
-    cout<<"No deadlock has been detected";
+    //Deadlock Detection And Recovery
+    deadlockDetectionAndRecovery(wait_graph, pid_probe, all_processes, terminated_processes);
   }
   else {
     cout << "Deadlock detection not possbile. No proccess running in the system" << endl;
@@ -123,24 +129,94 @@ void displayGraph(vector<vector<int>> wait_graph)
   }
 }
 
-bool detectDeadlock(vector<vector<int>> &wait_graph, int pid_probe, int dest_process, vector<int> all_processes)
+void deadlockDetectionAndRecovery(vector<vector<int>> &wait_graph, int pid_probe, vector<int> all_processes, vector<bool> &terminated_processes){
+  if(isDeadlockDetected(wait_graph, pid_probe, all_processes, terminated_processes)){
+    cout<<"Deadlock Detected";
+    recoverDeadlock(wait_graph, all_processes, terminated_processes);
+  }
+  else
+    cout<<"No deadlock has been detected";
+}
+
+bool isDeadlockDetected(vector<vector<int>> &wait_graph, int pid_probe, vector<int> all_processes, vector<bool> &terminated_processes){
+  int first_pid = pid_probe;
+  for (int col = 0; col < number_of_site; col++)
+  {
+    if(terminated_processes[col])
+      continue;
+    if (wait_graph.at(pid_probe).at(col) == 1)
+    {
+      cout << " S" << (pid_probe + 1) << " --> S" << (col + 1) << "     (" <<"p"<<(first_pid + 1)<<"1"<< ", " <<"p"<<(pid_probe + 1)<<all_processes[pid_probe] << ", " << "p"<<(col + 1)<<1<< ")" << endl;
+      if(detectDeadlock(wait_graph, pid_probe, col, all_processes, terminated_processes))
+      {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool detectDeadlock(vector<vector<int>> &wait_graph, int pid_probe, int dest_process, vector<int> all_processes, vector<bool> &terminated_processes)
 {
   int end = number_of_site;
   for (int col = 0; col < end; col++)
   {
+    if(terminated_processes[col])
+      continue;
     if (wait_graph[dest_process][col] == 1)
     {
       if (pid_probe == col)
       {
         cout << " S" << (dest_process + 1) << " --> S" << (col + 1) <<"     (" <<"p"<< (pid_probe + 1) <<"1"<< ", " << "p"<<(dest_process + 1)<<all_processes[dest_process] << ", " << "p" << (col + 1) <<1<< ")" << " --------> DEADLOCK DETECTED HERE" << endl;
-        is_deadlock_detected = 1;
         return true;
         break;
       }
       cout << " S" << (dest_process + 1) << " --> S" << (col + 1) << "     (" <<"p"<< (pid_probe + 1)<<"1" << ", " <<"p"<< (dest_process + 1) <<all_processes[dest_process] << ", "<<"p"<< (col + 1) <<1<< ")" << endl;
-      if(detectDeadlock(wait_graph, pid_probe, col, all_processes))
+      if(detectDeadlock(wait_graph, pid_probe, col, all_processes, terminated_processes))
         return true;
     }
   }
   return false;
 }
+int getProcessByPriority(vector<bool> &terminated_processes){
+  for(int i=0;i<number_of_site;i++){
+    if(terminated_processes[priority_wise_processes[i]-1]){
+      continue;
+    }
+    return priority_wise_processes[i]-1;
+  }
+  return -1;
+}
+
+int get_probe(vector<bool> &terminated_processes){
+  for(int site_number=0;site_number<number_of_site;site_number++){
+    if(terminated_processes[site_number])
+      continue;
+    return site_number;
+  }
+  return -1;
+}
+
+void recoverDeadlock(vector<vector<int>> &wait_graph, vector<int> all_processes, vector<bool> &terminated_processes){
+  int suicide_process = getProcessByPriority(terminated_processes);
+  terminated_processes[suicide_process] = 1;//killed suicide_process process
+  int pid_probe = get_probe(terminated_processes);
+  if(pid_probe == -1)
+  {
+    cout<<"All process has been deleted, We can restart the distributed system";
+    return;
+  }
+  cout<<"\n\nProcess "<<suicide_process+1<<" has been killed\n";
+  // print(terminated_processes);
+  if(isDeadlockDetected(wait_graph, pid_probe, all_processes, terminated_processes)){
+    recoverDeadlock(wait_graph, all_processes, terminated_processes);
+  }
+  else{
+    cout << "Deadlock has been recovered";
+  }
+}
+
+
+
+
+

@@ -1,5 +1,8 @@
 Number of sites/machines: 3
 
+Priority wise Process sites
+2 1 3 
+
 Process Info(ordered by local dependancy)
 site-1: p11 p12 p13 
 site-2: p21 p22 p23 p24 
@@ -9,11 +12,19 @@ site-3: p31 p32 p33 p34 p35
 Wait-For-Graph for Sites
 
 	S1	S2	S3	
-S1	0	1	0	
+S1	0	0	1	
 S2	1	0	0	
 S3	1	0	0	
 
-First process of Site 1 pid_probeiated the detection process
- S1 --> S2     (p11, p13, p21)
- S2 --> S1     (p11, p24, p11) --------> DEADLOCK DETECTED HERE
+First process of Site 1 pid_prob initiated the detection process
+ S1 --> S3     (p11, p13, p31)
+ S3 --> S1     (p11, p35, p11) --------> DEADLOCK DETECTED HERE
 Deadlock Detected
+
+Process 2 has been killed
+ S1 --> S3     (p11, p13, p31)
+ S3 --> S1     (p11, p35, p11) --------> DEADLOCK DETECTED HERE
+
+
+Process 1 has been killed
+Deadlock has been recovered
